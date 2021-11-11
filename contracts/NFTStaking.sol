@@ -3,29 +3,25 @@
 pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
-library Search {
-    function indexOf(uint256[] storage self, uint256 value) public view returns (uint256) {
-        for (uint256 i = 0; i < self.length; i++) if (self[i] == value) return i;
-        return type(uint256).max;
-    }
-}
+import "./Collection.sol";
 
 contract NFTStaking is Ownable {
-    using Search for uint256[];
     using SafeMath for uint256;
     // user deposits are recorded in StakeInfo[] stakes struct
     struct StakeInfo {
-        // staked is true if deposit is staked and hasn't been unstaked.
+        // staked is true if token is staked and hasn't been unstaked.
         // After user claims his stake back, `staked` becomes false
         bool staked;
+        // address of staked token's owner
+        address stakerAddress;
+        // time of start staking token
+        uint256 startTime;
         // totalYield is a total value of rewards for the given stake.
         // user is able to withdraw yield.
         uint256 totalYield;
-        // The amount of yield user already harvested and the time of last harvest call.
+        // The amount of yield user already harvested
         uint256 harvestedYield;
         // reward for staked token
         uint256 rewardPerSecond;
@@ -39,17 +35,17 @@ contract NFTStaking is Ownable {
     IERC20 public nftlToken;
 
     // The token accepted for staking
-    IERC721 public heroesToken;
+    Collection public heroesToken;
 
     // struccture that stores the records of users' stakes
-    mapping(address => mapping(uint256 => StakeInfo[])) public stakes;
+    mapping(uint256 => StakeInfo) public stakes;
     // struccture that stores the records of users' staked tokens
     mapping(address => uint256[]) public stakedTokens;
 
-    // Reward that staker will receive for his stake
+    // Base reward that staker will receive for his stake
     uint256 public baseRewardPerSecond;
 
-    event Stake(address indexed user, uint256 indexed tokenId);
+    event Stake(address indexed user, uint256 indexed tokenId, uint256 startTime);
     event Unstake(address indexed user, uint256 indexed tokenId);
     event Harvest(address indexed user, uint256 indexed tokenId, uint256 amount);
 
@@ -62,7 +58,7 @@ contract NFTStaking is Ownable {
         require(_nftlAddress != address(0), "Empty NFTL token address");
         require(_heroesAddress != address(0), "Empty heroes address");
         nftlToken = IERC20(_nftlAddress);
-        heroesToken = IERC721(_heroesAddress);
+        heroesToken = Collection(_heroesAddress);
     }
 
     /**
@@ -111,14 +107,20 @@ contract NFTStaking is Ownable {
     function stake(uint256 _tokenId) external {
         require(stakesOpen, "stake: not open");
         // entire reward allocated for the user for this stake
-        uint256 totalYield = baseRewardPerSecond;
-        uint256 rewardPerSecond = baseRewardPerSecond;
-        stakes[msg.sender][_tokenId].push(
-            StakeInfo({staked: true, totalYield: totalYield, harvestedYield: 0, rewardPerSecond: rewardPerSecond})
-        );
+        uint256 totalYield = 0;
+        uint256 rewardPerSecond = baseRewardPerSecond.mul(heroesToken.getRarity(_tokenId));
+        uint256 startTime = block.timestamp;
+        stakes[_tokenId] = StakeInfo({
+            staked: true,
+            stakerAddress: msg.sender,
+            totalYield: totalYield,
+            harvestedYield: 0,
+            rewardPerSecond: rewardPerSecond,
+            startTime: startTime
+        });
         stakedTokens[msg.sender].push(_tokenId);
 
-        emit Stake(msg.sender, _tokenId);
+        emit Stake(msg.sender, _tokenId, startTime);
         heroesToken.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
@@ -127,11 +129,9 @@ contract NFTStaking is Ownable {
      * @param _tokenId id of hero token
      */
     function unstake(uint256 _tokenId) external {
-        (bool staked, , , ) = getStake(msg.sender, _tokenId);
+        (bool staked, , , , , ) = getStake(_tokenId);
         require(staked, "Unstaked already");
-        stakes[msg.sender][_tokenId][_tokenId].staked = false;
-        uint256 indexOfToken = stakedTokens[msg.sender].indexOf(_tokenId);
-        delete stakedTokens[msg.sender][indexOfToken];
+        stakes[_tokenId].staked = false;
 
         emit Unstake(msg.sender, _tokenId);
         heroesToken.safeTransferFrom(address(this), msg.sender, _tokenId);
@@ -142,10 +142,13 @@ contract NFTStaking is Ownable {
      * @param _tokenId   Id of the token to be harvest
      */
     function harvest(uint256 _tokenId) external {
-        (, uint256 totalYield, uint256 harvestedYield, ) = getStake(msg.sender, _tokenId);
+        (, , uint256 startTime, uint256 totalYield, uint256 harvestedYield, uint256 rewardPerSecond) = getStake(
+            _tokenId
+        );
+        totalYield = rewardPerSecond.mul(block.timestamp - startTime);
         uint256 amount = totalYield.sub(harvestedYield);
         require(amount != 0, "harvestableYield is zero");
-        stakes[msg.sender][_tokenId][_tokenId].harvestedYield = harvestedYield.add(amount);
+        stakes[_tokenId].harvestedYield = harvestedYield.add(amount);
 
         emit Harvest(msg.sender, _tokenId, amount);
         nftlToken.transfer(msg.sender, amount);
@@ -157,26 +160,35 @@ contract NFTStaking is Ownable {
 
     /**
      * @dev get the individual stake parameters of the user's staked token
-     * @param _staker account of staker
-     * @param _stakeId token stake index
+     * @param _tokenId token stake index
      * @return staked the status of stake
+     * @return stakerAddress address of staker
+     * @return startTime time of start staking
      * @return totalYield entire yield for the stake
      * @return harvestedYield The part of yield user harvested already
      */
-    function getStake(address _staker, uint256 _stakeId)
+    function getStake(uint256 _tokenId)
         public
         view
         returns (
             bool staked,
+            address stakerAddress,
+            uint256 startTime,
             uint256 totalYield,
             uint256 harvestedYield,
             uint256 rewardPerSecond
         )
     {
-        StakeInfo memory _stake = stakes[_staker][_stakeId][_stakeId];
+        StakeInfo memory _stake = stakes[_tokenId];
         staked = _stake.staked;
+        stakerAddress = _stake.stakerAddress;
+        startTime = _stake.startTime;
         totalYield = _stake.totalYield;
         harvestedYield = _stake.harvestedYield;
         rewardPerSecond = _stake.rewardPerSecond;
+    }
+
+    function getTokenRewardPerSecond(uint256 _tokenId) public view returns (uint256 rewardPerSecond) {
+        return stakes[_tokenId].rewardPerSecond;
     }
 }
