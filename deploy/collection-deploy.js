@@ -25,3 +25,5 @@ module.exports = async({ ethers, deployments, getNamedAccounts }) => {
   console.log('Set vault');
   await execute('Collection', { from: deployer, log: true }, 'setVault', vaultAddress);
 };
+
+module.exports.tags = ['Collection'];
