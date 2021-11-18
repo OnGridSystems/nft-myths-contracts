@@ -16,7 +16,7 @@ contract NFTStaking is Ownable, ERC721Holder {
         // address of staked token's owner
         address stakerAddress;
         // time of start staking token
-        uint256 startTime;
+        uint256 lastUpdateTime;
         // totalYield is a total value of rewards for the given stake.
         // user is able to withdraw yield.
         uint256 totalYield;
@@ -103,15 +103,13 @@ contract NFTStaking is Ownable, ERC721Holder {
      */
     function stake(uint256 _tokenId) external {
         require(stakesOpen, "stake: not open");
-        // entire reward allocated for the user for this stake
-        uint256 totalYield = 0;
-        uint256 startTime = block.timestamp;
+        uint256 currentTime = block.timestamp;
         stakes[_tokenId] = StakeInfo({
             staked: true,
             stakerAddress: msg.sender,
-            totalYield: totalYield,
+            totalYield: 0,
             harvestedYield: 0,
-            startTime: startTime
+            lastUpdateTime: currentTime
         });
         stakedTokens[msg.sender].push(_tokenId);
 
@@ -127,6 +125,7 @@ contract NFTStaking is Ownable, ERC721Holder {
         (bool staked, address stakerAddress, , , ) = getStake(_tokenId);
         require(msg.sender == stakerAddress, "Sender is not staker");
         require(staked, "Unstaked already");
+        _updateYield(_tokenId);
         stakes[_tokenId].staked = false;
         stakes[_tokenId].stakerAddress = address(0);
 
@@ -152,9 +151,8 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @param _tokenId   Id of the token to be harvest
      */
     function harvest(uint256 _tokenId) external {
-        (, , uint256 startTime, uint256 totalYield, uint256 harvestedYield) = getStake(_tokenId);
-        uint256 rewardPerSecond = getTokenRewardPerSecond(_tokenId);
-        totalYield = rewardPerSecond * block.timestamp - startTime;
+        _updateYield(_tokenId);
+        (, , , uint256 totalYield, uint256 harvestedYield) = getStake(_tokenId);
         uint256 amount = totalYield - harvestedYield;
         require(amount != 0, "harvestableYield is zero");
         stakes[_tokenId].harvestedYield = harvestedYield + amount;
@@ -172,7 +170,7 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @param _tokenId token stake index
      * @return staked the status of stake
      * @return stakerAddress address of staker
-     * @return startTime time of start staking
+     * @return lastUpdateTime time of start staking
      * @return totalYield entire yield for the stake
      * @return harvestedYield The part of yield user harvested already
      */
@@ -182,7 +180,7 @@ contract NFTStaking is Ownable, ERC721Holder {
         returns (
             bool staked,
             address stakerAddress,
-            uint256 startTime,
+            uint256 lastUpdateTime,
             uint256 totalYield,
             uint256 harvestedYield
         )
@@ -190,12 +188,23 @@ contract NFTStaking is Ownable, ERC721Holder {
         StakeInfo memory _stake = stakes[_tokenId];
         staked = _stake.staked;
         stakerAddress = _stake.stakerAddress;
-        startTime = _stake.startTime;
+        lastUpdateTime = _stake.lastUpdateTime;
         totalYield = _stake.totalYield;
         harvestedYield = _stake.harvestedYield;
     }
 
     function getTokenRewardPerSecond(uint256 _tokenId) public view returns (uint256 rewardPerSecond) {
         rewardPerSecond = baseRewardPerSecond * heroesToken.getRarity(_tokenId);
+    }
+
+    // If token is staked, calculate its yield and update its stake parameters (totalYield and time)
+    function _updateYield(uint256 _tokenId) internal {
+        if (stakes[_tokenId].staked) {
+            uint256 currentTime = block.timestamp;
+            uint256 secondsStaked = currentTime - stakes[_tokenId].lastUpdateTime;
+            uint256 rewardSinceLastUpdate = getTokenRewardPerSecond(_tokenId) * secondsStaked;
+            stakes[_tokenId].totalYield += rewardSinceLastUpdate;
+            stakes[_tokenId].lastUpdateTime = currentTime;
+        }
     }
 }
