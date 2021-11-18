@@ -205,9 +205,9 @@ describe('NFTStaking', function() {
               expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(0);
             });
 
-            it('check stake details', async function() {
+            it('staked flag and stakerAddress got cleared', async function() {
               expect((await this.pool.getStake(10)).staked).to.equal(false);
-              expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
+              expect((await this.pool.getStake(10)).stakerAddress).to.equal(ZERO_ADDRESS);
               expect((await this.pool.getStake(10)).totalYield).to.equal('0');
               expect((await this.pool.getStake(10)).harvestedYield).to.equal('0');
             });

@@ -128,6 +128,7 @@ contract NFTStaking is Ownable, ERC721Holder {
         require(msg.sender == stakerAddress, "Sender is not staker");
         require(staked, "Unstaked already");
         stakes[_tokenId].staked = false;
+        stakes[_tokenId].stakerAddress = address(0);
 
         // Since `delete` Solidity operator leaves zeroes at the deleted index and
         // doesn'd decrease array length.
