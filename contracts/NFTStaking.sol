@@ -124,7 +124,8 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @param _tokenId id of hero token
      */
     function unstake(uint256 _tokenId) external {
-        (bool staked, , , , ) = getStake(_tokenId);
+        (bool staked, address stakerAddress, , , ) = getStake(_tokenId);
+        require(msg.sender == stakerAddress, "Sender is not staker");
         require(staked, "Unstaked already");
         stakes[_tokenId].staked = false;
 

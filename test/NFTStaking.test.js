@@ -9,6 +9,7 @@ describe('NFTStaking', function() {
     this.signers = await ethers.getSigners();
     this.owner = this.signers[0];
     this.account1 = this.signers[1];
+    this.stranger = this.signers[2];
 
     this.contract = await ethers.getContractFactory('NFTStaking');
     this.nftlTokenFactory = await ethers.getContractFactory('ERC20Mock');
@@ -124,7 +125,13 @@ describe('NFTStaking', function() {
             expect((await this.pool.getStake(10)).harvestedYield).to.equal('0');
           });
 
-          describe('Owner unstaked', function() {
+          it('non-staker unable to unstake', async function() {
+            await expect(this.pool.connect(this.stranger).unstake(10)).to.be.reverted;
+            expect((await this.pool.getStake(10)).staked).to.equal(true);
+            expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
+          });
+
+          describe('Staker unstaked', function() {
             beforeEach(async function() {
               this.stake1 = await this.pool.unstake(10);
             });
