@@ -129,6 +129,19 @@ contract NFTStaking is Ownable, ERC721Holder {
         require(staked, "Unstaked already");
         stakes[_tokenId].staked = false;
 
+        // Since `delete` Solidity operator leaves zeroes at the deleted index and
+        // doesn'd decrease array length.
+        // To actually drop data and shorten the list, we copy last item to the index
+        // of removed value (overwriting it) then pop last element to decrease array size
+        for (uint256 i = 0; i < stakedTokens[stakerAddress].length; ++i) {
+            if (stakedTokens[stakerAddress][i] == _tokenId) {
+                uint256 lastElementIndex = stakedTokens[stakerAddress].length - 1;
+                stakedTokens[stakerAddress][i] = stakedTokens[stakerAddress][lastElementIndex];
+                stakedTokens[stakerAddress].pop();
+                break;
+            }
+        }
+
         emit Unstake(msg.sender, _tokenId);
         heroesToken.safeTransferFrom(address(this), msg.sender, _tokenId);
     }

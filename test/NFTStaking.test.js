@@ -131,6 +131,67 @@ describe('NFTStaking', function() {
             expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
           });
 
+          it('getStakedTokens length has proper staked ids', async function() {
+            expect(await this.pool.getStakedTokens(this.stranger.address)).to.have.lengthOf(0);
+            expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(1);
+            await this.heroesToken.mint(this.owner.address, 0);
+            await this.heroesToken.approve(this.pool.address, 0);
+            await this.pool.stake(0);
+            await this.heroesToken.mint(this.owner.address, 1);
+            await this.heroesToken.approve(this.pool.address, 1);
+            await this.pool.stake(1);
+            await this.heroesToken.mint(this.owner.address, 2);
+            await this.heroesToken.approve(this.pool.address, 2);
+            await this.pool.stake(2);
+            await this.heroesToken.mint(this.owner.address, 3);
+            await this.heroesToken.approve(this.pool.address, 3);
+            await this.pool.stake(3);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(5);
+            // owner's stakes order: [10, 0, 1, 2, 3]
+            // unstaking decreases the length of staked tokens
+            // and last element moved to removed index
+            expect((await this.pool.getStakedTokens(this.owner.address))[2]).to.equal(1);
+            await this.pool.unstake(1);
+            // new order: [10, 0, 3, 2]
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(4);
+            expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
+            expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(0);
+            expect((await this.pool.getStakedTokens(this.owner.address))[2]).to.equal(3); // was 1
+            expect((await this.pool.getStakedTokens(this.owner.address))[3]).to.equal(2);
+            // now deleting value 2 located by the last index in the array.
+            // This works as usual and order doesn't change
+            await this.pool.unstake(2);
+            // now: [10, 0, 3]
+            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(3);
+            expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
+            expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(0);
+            expect((await this.pool.getStakedTokens(this.owner.address))[2]).to.equal(3);
+            await this.pool.unstake(0);
+            // now: [10, 3]
+            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(2);
+            expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
+            expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(3);
+            await this.pool.unstake(10);
+            // now: [3]
+            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(1);
+            expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(3);
+            await this.pool.unstake(3);
+            // now: []
+            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(0);
+            // staking is possible after all items were unstaked
+            await this.heroesToken.approve(this.pool.address, 0);
+            await this.pool.stake(0);
+            await this.heroesToken.approve(this.pool.address, 1);
+            await this.pool.stake(1);
+            await this.heroesToken.approve(this.pool.address, 2);
+            await this.pool.stake(2);
+            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(3);
+            expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(0);
+            expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(1);
+            expect((await this.pool.getStakedTokens(this.owner.address))[2]).to.equal(2);
+          });
+
           describe('Staker unstaked', function() {
             beforeEach(async function() {
               this.stake1 = await this.pool.unstake(10);
@@ -138,6 +199,10 @@ describe('NFTStaking', function() {
 
             it('emits event Unstake', async function() {
               await expect(this.stake1).to.emit(this.pool, 'Unstake').withArgs(this.owner.address, 10);
+            });
+
+            it('getStaked tokens has zero length', async function() {
+              expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(0);
             });
 
             it('check stake details', async function() {
