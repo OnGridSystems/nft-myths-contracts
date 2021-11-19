@@ -103,16 +103,10 @@ contract NFTStaking is Ownable, ERC721Holder {
      */
     function stake(uint256 _tokenId) external {
         require(stakesOpen, "stake: not open");
-        uint256 currentTime = block.timestamp;
-        stakes[_tokenId] = StakeInfo({
-            staked: true,
-            stakerAddress: msg.sender,
-            totalYield: 0,
-            harvestedYield: 0,
-            lastUpdateTime: currentTime
-        });
+        stakes[_tokenId].staked = true;
+        stakes[_tokenId].stakerAddress = msg.sender;
+        stakes[_tokenId].lastUpdateTime = block.timestamp;
         stakedTokens[msg.sender].push(_tokenId);
-
         emit Stake(msg.sender, _tokenId);
         heroesToken.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
@@ -122,9 +116,8 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @param _tokenId id of hero token
      */
     function unstake(uint256 _tokenId) external {
-        (bool staked, address stakerAddress, , , ) = getStake(_tokenId);
-        require(msg.sender == stakerAddress, "Sender is not staker");
-        require(staked, "Unstaked already");
+        require(msg.sender == stakes[_tokenId].stakerAddress, "Sender is not staker");
+        require(stakes[_tokenId].staked, "Unstaked already");
         _updateYield(_tokenId);
         stakes[_tokenId].staked = false;
         stakes[_tokenId].stakerAddress = address(0);
@@ -133,11 +126,11 @@ contract NFTStaking is Ownable, ERC721Holder {
         // doesn'd decrease array length.
         // To actually drop data and shorten the list, we copy last item to the index
         // of removed value (overwriting it) then pop last element to decrease array size
-        for (uint256 i = 0; i < stakedTokens[stakerAddress].length; ++i) {
-            if (stakedTokens[stakerAddress][i] == _tokenId) {
-                uint256 lastElementIndex = stakedTokens[stakerAddress].length - 1;
-                stakedTokens[stakerAddress][i] = stakedTokens[stakerAddress][lastElementIndex];
-                stakedTokens[stakerAddress].pop();
+        for (uint256 i = 0; i < stakedTokens[msg.sender].length; ++i) {
+            if (stakedTokens[msg.sender][i] == _tokenId) {
+                uint256 lastElementIndex = stakedTokens[msg.sender].length - 1;
+                stakedTokens[msg.sender][i] = stakedTokens[msg.sender][lastElementIndex];
+                stakedTokens[msg.sender].pop();
                 break;
             }
         }
@@ -152,10 +145,9 @@ contract NFTStaking is Ownable, ERC721Holder {
      */
     function harvest(uint256 _tokenId) external {
         _updateYield(_tokenId);
-        (, , , uint256 totalYield, uint256 harvestedYield) = getStake(_tokenId);
-        uint256 amount = totalYield - harvestedYield;
+        uint256 amount = stakes[_tokenId].totalYield - stakes[_tokenId].harvestedYield;
         require(amount != 0, "harvestableYield is zero");
-        stakes[_tokenId].harvestedYield = harvestedYield + amount;
+        stakes[_tokenId].harvestedYield = stakes[_tokenId].totalYield;
 
         emit Harvest(msg.sender, _tokenId, amount);
         nftlToken.transfer(msg.sender, amount);
@@ -175,7 +167,7 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @return harvestedYield The part of yield user harvested already
      */
     function getStake(uint256 _tokenId)
-        public
+        external
         view
         returns (
             bool staked,
