@@ -12,6 +12,7 @@ require('./tasks/2-mint-zero-batch-tokens.js');
 require('./tasks/3-mint-99-random-tokens.js');
 require('./tasks/4-reveal-zero-batch.js');
 require('./tasks/4.1-check-batch-owner.js');
+require('./tasks/4.2-add-batches-1-11.js');
 require('./tasks/5-start-sale.js');
 require('./tasks/6-buy-random-tokens.js');
 require('./tasks/7-stop-sale.js');
@@ -53,6 +54,16 @@ module.exports = {
       saveDeployments: true,
       tags: ['staging'],
       gasPrice: 8000000000,
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${process.env.INFURA_RINKEBY_API_KEY}`,
+      accounts,
+      chainId: 3,
+      live: true,
+      saveDeployments: true,
+      tags: ['staging'],
+      gasPrice: 8000000000,
+      gasLimit: 8000000,
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,

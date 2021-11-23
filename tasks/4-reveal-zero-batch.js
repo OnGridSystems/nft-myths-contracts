@@ -14,8 +14,8 @@ task('4-reveal-zero-batch', 'reveal zero batch').setAction(async(taskArgs, hre) 
     'addBatch',
     0,
     3,
-    'ipfs://QmUBsgEfLBtH8XxTBqRXt4rUsjBRFhAMBoJNEGwJqTnpRB',
-    0,
+    'ipfs://QmZHmjtCmrT2ZnbQmxoDg6dtD63QG5kE8zRg9hJC79VjvG',
+    100000,
   );
   console.log('batch is revealed');
 
