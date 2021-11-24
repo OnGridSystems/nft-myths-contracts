@@ -56,14 +56,13 @@ module.exports = {
       gasPrice: 8000000000,
     },
     ropsten: {
-      url: `https://ropsten.infura.io/v3/${process.env.INFURA_RINKEBY_API_KEY}`,
+      url: `https://ropsten.infura.io/v3/${process.env.INFURA_ROPSTEN_API_KEY}`,
       accounts,
       chainId: 3,
       live: true,
       saveDeployments: true,
       tags: ['staging'],
       gasPrice: 8000000000,
-      gasLimit: 8000000,
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
