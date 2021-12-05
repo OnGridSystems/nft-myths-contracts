@@ -144,10 +144,18 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @param _tokenId   Id of the token to be harvested
      */
     function harvest(uint256 _tokenId) external {
-        require(msg.sender == stakes[_tokenId].stakerAddress, "Sender is not staker");
+        address currentTokenHolder = heroesToken.ownerOf(_tokenId);
+        if (currentTokenHolder == address(this)) {
+            // token is on staking contract, so we need to check it was indeed staked by msg.sender
+            require(msg.sender == stakes[_tokenId].stakerAddress, "Sender is not staker");
+        } else {
+            // token is on another address, so we need to check msg.sender is its owner
+            require(msg.sender == currentTokenHolder, "Sender is not holder");
+        }
+
         _updateYield(_tokenId);
         uint256 amount = stakes[_tokenId].totalYield - stakes[_tokenId].harvestedYield;
-        require(amount != 0, "harvestableYield is zero");
+        require(amount != 0, "No harvestableYield");
         stakes[_tokenId].harvestedYield = stakes[_tokenId].totalYield;
 
         emit Harvest(msg.sender, _tokenId, amount);

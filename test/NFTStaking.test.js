@@ -63,7 +63,7 @@ describe('NFTStaking', function() {
     });
 
     it('Non-staker can\'t harvest token of other', async function() {
-      await expect(this.pool.connect(this.stranger).harvest(10)).to.be.revertedWith('Sender is not staker');
+      await expect(this.pool.connect(this.stranger).harvest(10)).to.be.reverted;
     });
 
     describe('Start staking', async function() {
@@ -108,7 +108,7 @@ describe('NFTStaking', function() {
         });
 
         it('Non-staker can\'t harvest', async function() {
-          await expect(this.pool.connect(this.account1).harvest(1)).to.be.revertedWith('Sender is not staker');
+          await expect(this.pool.connect(this.account1).harvest(1)).to.be.reverted;
         });
 
         describe('Owner staked', function() {
@@ -141,7 +141,7 @@ describe('NFTStaking', function() {
           });
 
           it('Non-staker unable to harvest', async function() {
-            await expect(this.pool.connect(this.account1).harvest(1)).to.be.revertedWith('Sender is not staker');
+            await expect(this.pool.connect(this.account1).harvest(1)).to.be.reverted;
           });
 
           it('Staker is able to harvest multiple times', async function() {
@@ -161,7 +161,11 @@ describe('NFTStaking', function() {
             // and it's able to finally unstake it
             await this.pool.unstake(10);
             expect((await this.pool.getStake(10)).staked).to.equal(false);
-            // todo: it must be possible to harvest accumulated yield, see NFT-484
+            // now harvesting remanining yield of unstaked token
+            await expect(() =>
+              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 100),
+            ).to.changeTokenBalance(this.nftlToken, this.owner, 100);
+            await expect(this.pool.harvest(10)).to.be.revertedWith('harvestableYield is zero');
           });
 
           it('getStakedTokens length has proper staked ids', async function() {
