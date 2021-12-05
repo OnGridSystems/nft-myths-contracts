@@ -127,6 +127,15 @@ describe('NFTStaking', function() {
             await expect(this.stake1).to.emit(this.pool, 'Stake').withArgs(this.owner.address, 10);
           });
 
+          it('getRewardSinceLastUpdate increases over time', async function() {
+            expect(await this.pool.getRewardSinceLastUpdate(10)).to.equal(0);
+            await ethers.provider.send('evm_mine');
+            expect(await this.pool.getRewardSinceLastUpdate(10)).to.equal(100);
+            await ethers.provider.send('evm_increaseTime', [1]);
+            await ethers.provider.send('evm_mine');
+            expect(await this.pool.getRewardSinceLastUpdate(10)).to.equal(200);
+          });
+
           it('check stake details', async function() {
             expect((await this.pool.getStake(10)).staked).to.equal(true);
             expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
@@ -161,11 +170,12 @@ describe('NFTStaking', function() {
             // and it's able to finally unstake it
             await this.pool.unstake(10);
             expect((await this.pool.getStake(10)).staked).to.equal(false);
-            // now harvesting remanining yield of unstaked token
-            await expect(() =>
-              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 100),
-            ).to.changeTokenBalance(this.nftlToken, this.owner, 100);
-            await expect(this.pool.harvest(10)).to.be.revertedWith('harvestableYield is zero');
+            // yield doesn't increase since token is unstaked.
+            // and it's forbidden to harvest zero yield
+            await expect(this.pool.harvest(10)).to.be.revertedWith('No harvestableYield');
+            // check token can be staked again
+            await this.heroesToken.approve(this.pool.address, 10);
+            await this.pool.stake(10);
           });
 
           it('getStakedTokens length has proper staked ids', async function() {
@@ -200,22 +210,22 @@ describe('NFTStaking', function() {
             // This works as usual and order doesn't change
             await this.pool.unstake(2);
             // now: [10, 0, 3]
-            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(3);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(3);
             expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
             expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(0);
             expect((await this.pool.getStakedTokens(this.owner.address))[2]).to.equal(3);
             await this.pool.unstake(0);
             // now: [10, 3]
-            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(2);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(2);
             expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
             expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(3);
             await this.pool.unstake(10);
             // now: [3]
-            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(1);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(1);
             expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(3);
             await this.pool.unstake(3);
             // now: []
-            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(0);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(0);
             // staking is possible after all items were unstaked
             await this.heroesToken.approve(this.pool.address, 0);
             await this.pool.stake(0);
@@ -223,7 +233,7 @@ describe('NFTStaking', function() {
             await this.pool.stake(1);
             await this.heroesToken.approve(this.pool.address, 2);
             await this.pool.stake(2);
-            expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(3);
+            expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(3);
             expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(0);
             expect((await this.pool.getStakedTokens(this.owner.address))[1]).to.equal(1);
             expect((await this.pool.getStakedTokens(this.owner.address))[2]).to.equal(2);
@@ -239,7 +249,7 @@ describe('NFTStaking', function() {
             });
 
             it('getStaked tokens has zero length', async function() {
-              expect((await this.pool.getStakedTokens(this.owner.address))).to.have.lengthOf(0);
+              expect(await this.pool.getStakedTokens(this.owner.address)).to.have.lengthOf(0);
             });
 
             it('staked flag and stakerAddress got cleared', async function() {

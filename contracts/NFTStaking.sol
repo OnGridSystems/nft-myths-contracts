@@ -136,6 +136,7 @@ contract NFTStaking is Ownable, ERC721Holder {
         }
 
         emit Unstake(msg.sender, _tokenId);
+        _calculateAndTransferHarvest(_tokenId);
         heroesToken.safeTransferFrom(address(this), msg.sender, _tokenId);
     }
 
@@ -148,22 +149,33 @@ contract NFTStaking is Ownable, ERC721Holder {
         if (currentTokenHolder == address(this)) {
             // token is on staking contract, so we need to check it was indeed staked by msg.sender
             require(msg.sender == stakes[_tokenId].stakerAddress, "Sender is not staker");
+            _updateYield(_tokenId);
         } else {
             // token is on another address, so we need to check msg.sender is its owner
             require(msg.sender == currentTokenHolder, "Sender is not holder");
         }
 
-        _updateYield(_tokenId);
-        uint256 amount = stakes[_tokenId].totalYield - stakes[_tokenId].harvestedYield;
-        require(amount != 0, "No harvestableYield");
-        stakes[_tokenId].harvestedYield = stakes[_tokenId].totalYield;
-
-        emit Harvest(msg.sender, _tokenId, amount);
-        nftlToken.transfer(msg.sender, amount);
+        require(stakes[_tokenId].totalYield > stakes[_tokenId].harvestedYield, "No harvestableYield");
+        _calculateAndTransferHarvest(_tokenId);
     }
 
     function getStakedTokens(address _staker) public view returns (uint256[] memory) {
         return stakedTokens[_staker];
+    }
+
+    /**
+     * @dev return unaccounted reward that is not reflected in the contract state
+     * for staked tokens this function returns value that increments each block.
+     * For tokens that are not staked it returns 0
+     * @param _tokenId index of the token
+     * @return rewardSinceLastUpdate reward tokens that were accumulated sinceLastUpdate
+     */
+    function getRewardSinceLastUpdate(uint256 _tokenId) public view returns (uint256 rewardSinceLastUpdate) {
+        rewardSinceLastUpdate = 0;
+        if (stakes[_tokenId].staked) {
+            uint256 secondsStaked = block.timestamp - stakes[_tokenId].lastUpdateTime;
+            rewardSinceLastUpdate = getTokenRewardPerSecond(_tokenId) * secondsStaked;
+        }
     }
 
     /**
@@ -200,12 +212,15 @@ contract NFTStaking is Ownable, ERC721Holder {
 
     // If token is staked, calculate its yield and update its stake parameters (totalYield and time)
     function _updateYield(uint256 _tokenId) internal {
-        if (stakes[_tokenId].staked) {
-            uint256 currentTime = block.timestamp;
-            uint256 secondsStaked = currentTime - stakes[_tokenId].lastUpdateTime;
-            uint256 rewardSinceLastUpdate = getTokenRewardPerSecond(_tokenId) * secondsStaked;
-            stakes[_tokenId].totalYield += rewardSinceLastUpdate;
-            stakes[_tokenId].lastUpdateTime = currentTime;
-        }
+        require(stakes[_tokenId].staked, "Token not staked");
+        stakes[_tokenId].totalYield += getRewardSinceLastUpdate(_tokenId);
+        stakes[_tokenId].lastUpdateTime = block.timestamp;
+    }
+
+    function _calculateAndTransferHarvest(uint256 _tokenId) internal {
+        uint256 amount = stakes[_tokenId].totalYield - stakes[_tokenId].harvestedYield;
+        stakes[_tokenId].harvestedYield = stakes[_tokenId].totalYield;
+        emit Harvest(msg.sender, _tokenId, amount);
+        nftlToken.transfer(msg.sender, amount);
     }
 }
