@@ -141,9 +141,10 @@ contract NFTStaking is Ownable, ERC721Holder {
 
     /**
      * @dev harvest accumulated rewards. Can be called many times.
-     * @param _tokenId   Id of the token to be harvest
+     * @param _tokenId   Id of the token to be harvested
      */
     function harvest(uint256 _tokenId) external {
+        require(msg.sender == stakes[_tokenId].stakerAddress, "Sender is not staker");
         _updateYield(_tokenId);
         uint256 amount = stakes[_tokenId].totalYield - stakes[_tokenId].harvestedYield;
         require(amount != 0, "harvestableYield is zero");

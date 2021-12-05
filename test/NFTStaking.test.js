@@ -21,6 +21,7 @@ describe('NFTStaking', function() {
       this.nftlToken = await this.nftlTokenFactory.deploy('NFTL', 'NFTL', this.owner.address, 0);
       this.heroesToken = await this.heroesTokenFactory.deploy();
       this.pool = await this.contract.deploy(this.nftlToken.address, this.heroesToken.address);
+      await this.pool.setBaseRewardPerSecond(10);
     });
 
     it('should revert if the nftl token address is zero', async function() {
@@ -59,6 +60,10 @@ describe('NFTStaking', function() {
 
     it('Non-owner can\'t start staking', async function() {
       await expect(this.pool.connect(this.account1).start()).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('Non-staker can\'t harvest token of other', async function() {
+      await expect(this.pool.connect(this.stranger).harvest(10)).to.be.revertedWith('Sender is not staker');
     });
 
     describe('Start staking', async function() {
@@ -102,6 +107,10 @@ describe('NFTStaking', function() {
           await expect(this.pool.stake(10)).to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
         });
 
+        it('Non-staker can\'t harvest', async function() {
+          await expect(this.pool.connect(this.account1).harvest(1)).to.be.revertedWith('Sender is not staker');
+        });
+
         describe('Owner staked', function() {
           beforeEach(async function() {
             await this.heroesToken.approve(this.pool.address, 10);
@@ -129,6 +138,30 @@ describe('NFTStaking', function() {
             await expect(this.pool.connect(this.stranger).unstake(10)).to.be.reverted;
             expect((await this.pool.getStake(10)).staked).to.equal(true);
             expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
+          });
+
+          it('Non-staker unable to harvest', async function() {
+            await expect(this.pool.connect(this.account1).harvest(1)).to.be.revertedWith('Sender is not staker');
+          });
+
+          it('Staker is able to harvest multiple times', async function() {
+            expect((await this.pool.getStake(10)).staked).to.equal(true);
+            // harvest immediately (1s)
+            // yield = 1s * 10tokens/s * 10rarity = 100
+            await expect(() =>
+              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 100),
+            ).to.changeTokenBalance(this.nftlToken, this.owner, 100);
+            // then repeat the same after 1000s
+            await ethers.provider.send('evm_increaseTime', [1000]);
+            await expect(() =>
+              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 100000),
+            ).to.changeTokenBalance(this.nftlToken, this.owner, 100000);
+            // check the token is still staked after multiple harvests
+            expect((await this.pool.getStake(10)).staked).to.equal(true);
+            // and it's able to finally unstake it
+            await this.pool.unstake(10);
+            expect((await this.pool.getStake(10)).staked).to.equal(false);
+            // todo: it must be possible to harvest accumulated yield, see NFT-484
           });
 
           it('getStakedTokens length has proper staked ids', async function() {
@@ -208,8 +241,6 @@ describe('NFTStaking', function() {
             it('staked flag and stakerAddress got cleared', async function() {
               expect((await this.pool.getStake(10)).staked).to.equal(false);
               expect((await this.pool.getStake(10)).stakerAddress).to.equal(ZERO_ADDRESS);
-              expect((await this.pool.getStake(10)).totalYield).to.equal('0');
-              expect((await this.pool.getStake(10)).harvestedYield).to.equal('0');
             });
           });
         });
