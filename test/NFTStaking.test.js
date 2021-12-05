@@ -141,6 +141,9 @@ describe('NFTStaking', function() {
             expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
             expect((await this.pool.getStake(10)).totalYield).to.equal('0');
             expect((await this.pool.getStake(10)).harvestedYield).to.equal('0');
+            await ethers.provider.send('evm_increaseTime', [1]);
+            await ethers.provider.send('evm_mine');
+            expect((await this.pool.getStake(10)).totalYield).to.equal('100');
           });
 
           it('non-staker unable to unstake', async function() {

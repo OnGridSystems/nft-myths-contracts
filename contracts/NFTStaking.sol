@@ -202,7 +202,7 @@ contract NFTStaking is Ownable, ERC721Holder {
         staked = _stake.staked;
         stakerAddress = _stake.stakerAddress;
         lastUpdateTime = _stake.lastUpdateTime;
-        totalYield = _stake.totalYield;
+        totalYield = _stake.totalYield + getRewardSinceLastUpdate(_tokenId);
         harvestedYield = _stake.harvestedYield;
     }
 
