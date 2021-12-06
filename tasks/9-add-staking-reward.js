@@ -8,7 +8,7 @@ task('9-add-staking-reward', 'set base reward per second').setAction(async(taskA
   const listAccounts = await ethers.provider.listAccounts();
   const deployerAddress = listAccounts[0];
 
-  const price = 116057838661;
+  const price = 115740740741;
 
   try {
     await execute(

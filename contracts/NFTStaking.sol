@@ -5,9 +5,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Collection.sol";
 
-contract NFTStaking is Ownable, ERC721Holder {
+contract NFTStaking is Ownable, ERC721Holder, Initializable {
     // user deposits are recorded in StakeInfo[] stakes struct
     struct StakeInfo {
         // staked is true if token is staked and hasn't been unstaked.
@@ -53,7 +54,7 @@ contract NFTStaking is Ownable, ERC721Holder {
      * @param _nftlAddress address of token - the same used to pay rewards
      * @param _heroesAddress address of token - the same accepted for staking
      */
-    constructor(address _nftlAddress, address _heroesAddress) {
+    function initialize(address _nftlAddress, address _heroesAddress) public initializer {
         require(_nftlAddress != address(0), "Empty NFTL token address");
         require(_heroesAddress != address(0), "Empty heroes address");
         nftlToken = IERC20(_nftlAddress);
