@@ -34,6 +34,8 @@ contract NFTStaking is Ownable, ERC721Holder {
     // The token accepted for staking
     Collection public heroesToken;
 
+    uint256 internal constant WELCOME_BONUS_TIME = 365 * 24 * 60 * 60;
+
     // struccture that stores the records of users' stakes
     mapping(uint256 => StakeInfo) public stakes;
     // struccture that stores the records of users' staked tokens
@@ -106,6 +108,11 @@ contract NFTStaking is Ownable, ERC721Holder {
         stakes[_tokenId].staked = true;
         stakes[_tokenId].stakerAddress = msg.sender;
         stakes[_tokenId].lastUpdateTime = block.timestamp;
+
+        // stakers get welcome bonus for their first stake
+        if (stakes[_tokenId].totalYield == 0) {
+            stakes[_tokenId].totalYield = WELCOME_BONUS_TIME * getTokenRewardPerSecond(_tokenId);
+        }
         stakedTokens[msg.sender].push(_tokenId);
         emit Stake(msg.sender, _tokenId);
         heroesToken.safeTransferFrom(msg.sender, address(this), _tokenId);

@@ -139,11 +139,11 @@ describe('NFTStaking', function() {
           it('check stake details', async function() {
             expect((await this.pool.getStake(10)).staked).to.equal(true);
             expect((await this.pool.getStake(10)).stakerAddress).to.equal(this.owner.address);
-            expect((await this.pool.getStake(10)).totalYield).to.equal('0');
+            expect((await this.pool.getStake(10)).totalYield).to.equal('3153600000');
             expect((await this.pool.getStake(10)).harvestedYield).to.equal('0');
             await ethers.provider.send('evm_increaseTime', [1]);
             await ethers.provider.send('evm_mine');
-            expect((await this.pool.getStake(10)).totalYield).to.equal('100');
+            expect((await this.pool.getStake(10)).totalYield).to.equal('3153600100');
           });
 
           it('non-staker unable to unstake', async function() {
@@ -158,11 +158,12 @@ describe('NFTStaking', function() {
 
           it('Staker is able to harvest multiple times', async function() {
             expect((await this.pool.getStake(10)).staked).to.equal(true);
+            expect((await this.pool.getStake(10)).totalYield).to.equal(3153600000);
             // harvest immediately (1s)
             // yield = 1s * 10tokens/s * 10rarity = 100
             await expect(() =>
-              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 100),
-            ).to.changeTokenBalance(this.nftlToken, this.owner, 100);
+              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 3153600100),
+            ).to.changeTokenBalance(this.nftlToken, this.owner, 3153600100);
             // then repeat the same after 1000s
             await ethers.provider.send('evm_increaseTime', [1000]);
             await expect(() =>
@@ -179,6 +180,10 @@ describe('NFTStaking', function() {
             // check token can be staked again
             await this.heroesToken.approve(this.pool.address, 10);
             await this.pool.stake(10);
+            // second stake doesn't give welcome rewards
+            await expect(() =>
+              expect(this.pool.harvest(10)).to.emit(this.pool, 'Harvest').withArgs(this.owner.address, 10, 100),
+            ).to.changeTokenBalance(this.nftlToken, this.owner, 100);
           });
 
           it('getStakedTokens length has proper staked ids', async function() {
