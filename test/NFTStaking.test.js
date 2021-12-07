@@ -66,6 +66,35 @@ describe('NFTStaking', function() {
       await expect(this.pool.connect(this.stranger).harvest(10)).to.be.reverted;
     });
 
+    describe('Checking NFTL Output', async function() {
+      beforeEach(async function() {
+        await this.pool.start();
+        await this.nftlToken.mint(this.pool.address, BigNumber.from('10').mul(BigNumber.from(10).pow(18)));
+      });
+
+      it('should revert when address _to equal zero', async function() {
+        await expect(this.pool.withdrawNftl(ZERO_ADDRESS, 1000)).to.be.revertedWith('Empty receiver address');
+      });
+
+      it('should revert when zero amount', async function() {
+        await expect(this.pool.withdrawNftl(this.account1.address, 0)).to.be.revertedWith('Zero amount');
+      });
+
+      it('should revert when the amount exceeds the balance ', async function() {
+        await expect(this.pool.withdrawNftl(
+          this.owner.address,
+          BigNumber.from('20').mul(BigNumber.from(10).pow(18)),
+        )).to.be.revertedWith('Not enough tokens');
+      });
+
+      it('withdrawNftl() called', async function() {
+        await expect(this.pool.withdrawNftl(
+          this.owner.address,
+          BigNumber.from('5').mul(BigNumber.from(10).pow(18)),
+        ));
+      });
+    });
+
     describe('Start staking', async function() {
       beforeEach(async function() {
         await this.pool.start();
