@@ -3,12 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 import "./Collection.sol";
 
-contract NFTStaking is Ownable, ERC721Holder, Initializable {
+contract NFTStaking is OwnableUpgradeable, ERC721HolderUpgradeable {
     // user deposits are recorded in StakeInfo[] stakes struct
     struct StakeInfo {
         // staked is true if token is staked and hasn't been unstaked.
@@ -59,6 +58,7 @@ contract NFTStaking is Ownable, ERC721Holder, Initializable {
         require(_heroesAddress != address(0), "Empty heroes address");
         nftlToken = IERC20(_nftlAddress);
         heroesToken = Collection(_heroesAddress);
+        __Ownable_init();
     }
 
     /**

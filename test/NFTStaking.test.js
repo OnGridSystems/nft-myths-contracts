@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers, upgrades } = require('hardhat');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
 
@@ -11,29 +11,29 @@ describe('NFTStaking', function() {
     this.account1 = this.signers[1];
     this.stranger = this.signers[2];
 
-    this.contract = await ethers.getContractFactory('NFTStaking');
+    this.StakingFactory = await ethers.getContractFactory('NFTStaking');
     this.nftlTokenFactory = await ethers.getContractFactory('ERC20Mock');
     this.heroesTokenFactory = await ethers.getContractFactory('CollectionMock');
   });
-
   describe('Deploy', function() {
     beforeEach(async function() {
       this.nftlToken = await this.nftlTokenFactory.deploy('NFTL', 'NFTL', this.owner.address, 0);
       this.heroesToken = await this.heroesTokenFactory.deploy();
-      this.pool = await this.contract.deploy(this.nftlToken.address, this.heroesToken.address);
+      // this.contract = await upgrades.deployProxy(this.StakingFactory);
+      this.pool = await upgrades.deployProxy(this.StakingFactory, [this.nftlToken.address, this.heroesToken.address]);
       await this.pool.setBaseRewardPerSecond(10);
     });
 
     it('should revert if the nftl token address is zero', async function() {
-      await expect(this.contract.deploy(ZERO_ADDRESS, this.heroesToken.address)).to.be.revertedWith(
-        'Empty NFTL token address',
-      );
+      await expect(
+        upgrades.deployProxy(this.StakingFactory, [ZERO_ADDRESS, this.heroesToken.address]),
+      ).to.be.revertedWith('Empty NFTL token address');
     });
 
     it('should revert if the heroes token address is zero', async function() {
-      await expect(this.contract.deploy(this.nftlToken.address, ZERO_ADDRESS)).to.be.revertedWith(
-        'Empty heroes address',
-      );
+      await expect(
+        upgrades.deployProxy(this.StakingFactory, [this.nftlToken.address, ZERO_ADDRESS]),
+      ).to.be.revertedWith('Empty heroes address');
     });
 
     it('should be deployed', async function() {

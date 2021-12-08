@@ -11,12 +11,7 @@ task('9-add-staking-reward', 'set base reward per second').setAction(async(taskA
   const price = 115740740741;
 
   try {
-    await execute(
-      'NFTStaking',
-      { from: deployerAddress, log: true },
-      'setBaseRewardPerSecond',
-      price,
-    );
+    await execute('NFTStaking', { from: deployerAddress, log: true }, 'setBaseRewardPerSecond', price);
     console.log(`BaseRewardPerSecond is set at ${price}`);
   } catch (e) {
     console.log(e);

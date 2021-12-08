@@ -63,7 +63,7 @@ module.exports = {
       live: true,
       saveDeployments: true,
       tags: ['staging'],
-      gasPrice: 8000000000,
+      gasPrice: 470000000000,
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,

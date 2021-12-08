@@ -18,13 +18,7 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
 
   const staking = await deployments.get('NFTStaking');
 
-  await execute(
-    'ERC20Mock',
-    { from: deployer, log: true },
-    'transfer',
-    staking.address,
-    ethers.utils.parseEther('50'),
-  );
+  await execute('ERC20Mock', { from: deployer, log: true }, 'transfer', staking.address, ethers.utils.parseEther('50'));
 };
 
 module.exports.dependencies = ['Collection', 'ERC20Mock'];
