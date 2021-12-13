@@ -71,7 +71,8 @@ describe('NFTStaking', function() {
       });
 
       it('should revert when address _to equal zero', async function() {
-        await expect(this.pool.withdrawNftl(ethers.constants.AddressZero, 1000)).to.be.revertedWith('Empty receiver address');
+        await expect(this.pool.withdrawNftl(ethers.constants.AddressZero, 1000))
+          .to.be.revertedWith('Empty receiver address');
       });
 
       it('should revert when zero amount', async function() {
