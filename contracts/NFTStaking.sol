@@ -166,6 +166,11 @@ contract NFTStaking is OwnableUpgradeable, ERC721HolderUpgradeable {
         _calculateAndTransferHarvest(_tokenId);
     }
 
+    /**
+     * @dev return the array of staked token IDs
+     * @param _staker address of token staker
+     * @return stakedTokens array of staked token IDs
+     */
     function getStakedTokens(address _staker) public view returns (uint256[] memory) {
         return stakedTokens[_staker];
     }
@@ -213,17 +218,29 @@ contract NFTStaking is OwnableUpgradeable, ERC721HolderUpgradeable {
         harvestedYield = _stake.harvestedYield;
     }
 
+    /**
+     * @dev calculate reward speed for the given tokenId
+     * @param _tokenId token id
+     * @return rewardPerSecond in atto tokens per second
+     */
     function getTokenRewardPerSecond(uint256 _tokenId) public view returns (uint256 rewardPerSecond) {
         rewardPerSecond = baseRewardPerSecond * heroesToken.getRarity(_tokenId);
     }
 
-    // If token is staked, calculate its yield and update its stake parameters (totalYield and time)
+    /**
+     * @dev Update accumulated reward for staked token
+     * @param _tokenId token id
+     */
     function _updateYield(uint256 _tokenId) internal {
         require(stakes[_tokenId].staked, "Token not staked");
         stakes[_tokenId].totalYield += getRewardSinceLastUpdate(_tokenId);
         stakes[_tokenId].lastUpdateTime = block.timestamp;
     }
 
+    /**
+     * @dev Calculate yield amount, emit Harvest event and pay nftl tokens
+     * @param _tokenId token id
+     */
     function _calculateAndTransferHarvest(uint256 _tokenId) internal {
         uint256 amount = stakes[_tokenId].totalYield - stakes[_tokenId].harvestedYield;
         stakes[_tokenId].harvestedYield = stakes[_tokenId].totalYield;
