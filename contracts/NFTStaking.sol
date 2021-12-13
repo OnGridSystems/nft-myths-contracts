@@ -83,7 +83,6 @@ contract NFTStaking is OwnableUpgradeable, ERC721HolderUpgradeable {
      */
 
     function setBaseRewardPerSecond(uint256 _baseRewardPerSecond) public onlyOwner {
-        require(_baseRewardPerSecond > 0, "Zero reward");
         baseRewardPerSecond = _baseRewardPerSecond;
     }
 

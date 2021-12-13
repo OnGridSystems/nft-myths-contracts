@@ -228,6 +228,14 @@ describe('NFTStaking', function() {
             ).to.changeTokenBalance(this.nftlToken, this.owner, 100);
           });
 
+          it('If NFTL balance is not enough, emergency unstaking is possible after reward decrease', async function() {
+            await this.pool.setBaseRewardPerSecond('999999999999999999999999');
+            await expect(this.pool.unstake(10)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+            await expect(this.pool.harvest(10)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+            await this.pool.setBaseRewardPerSecond('0');
+            await this.pool.unstake(10);
+          });
+
           it('getStakedTokens length has proper staked ids', async function() {
             expect(await this.pool.getStakedTokens(this.stranger.address)).to.have.lengthOf(0);
             expect((await this.pool.getStakedTokens(this.owner.address))[0]).to.equal(10);
