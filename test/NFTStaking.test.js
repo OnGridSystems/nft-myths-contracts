@@ -45,6 +45,7 @@ describe('NFTStaking', function() {
       expect(await this.pool.getStakedTokens(this.owner.address)).to.deep.equal([]);
       expect(await this.nftlToken.balanceOf(this.pool.address)).to.equal('0');
       expect(await this.heroesToken.balanceOf(this.pool.address)).to.equal('0');
+      expect(await this.pool.baseRewardPerSecond()).to.equal('10');
     });
 
     it('should revert when Stakes are not started yet', async function() {
@@ -63,7 +64,7 @@ describe('NFTStaking', function() {
       await expect(this.pool.connect(this.stranger).harvest(10)).to.be.reverted;
     });
 
-    describe('Checking NFTL Output', async function() {
+    describe('With NFTL balance on the active pool', async function() {
       beforeEach(async function() {
         await this.pool.start();
         await this.nftlToken.mint(this.pool.address, ethers.utils.parseEther('10'));
@@ -84,11 +85,25 @@ describe('NFTStaking', function() {
         )).to.be.revertedWith('Not enough tokens');
       });
 
-      it('withdrawNftl() called', async function() {
-        await expect(this.pool.withdrawNftl(
-          this.owner.address,
-          ethers.utils.parseEther('5'),
-        ));
+      it('should revert if called by non-owner account', async function() {
+        await expect(this.pool.connect(this.stranger).withdrawNftl(
+          this.stranger.address,
+          ethers.utils.parseEther('10'),
+        )).to.be.revertedWith('Ownable: caller is not the owner');
+      });
+
+      it('owner is able to withdraw excess NFTL', async function() {
+        expect(await this.nftlToken.balanceOf(this.pool.address)).to.equal(ethers.utils.parseEther('10'));
+        await expect(() =>
+          expect(this.pool.withdrawNftl(this.owner.address, ethers.utils.parseEther('5'))),
+        ).to.changeTokenBalance(this.nftlToken, this.owner, ethers.utils.parseEther('5'));
+        expect(await this.nftlToken.balanceOf(this.pool.address)).to.equal(ethers.utils.parseEther('5'));
+      });
+
+      it('owner is able to stop staking', async function() {
+        expect(await this.pool.stakesOpen()).to.equal(true);
+        await this.pool.stop();
+        expect(await this.pool.stakesOpen()).to.equal(false);
       });
     });
 
