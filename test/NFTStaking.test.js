@@ -1,8 +1,5 @@
 const { ethers, upgrades } = require('hardhat');
 const { expect } = require('chai');
-const { BigNumber } = require('ethers');
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 describe('NFTStaking', function() {
   before(async function() {
@@ -26,13 +23,13 @@ describe('NFTStaking', function() {
 
     it('should revert if the nftl token address is zero', async function() {
       await expect(
-        upgrades.deployProxy(this.StakingFactory, [ZERO_ADDRESS, this.heroesToken.address]),
+        upgrades.deployProxy(this.StakingFactory, [ethers.constants.AddressZero, this.heroesToken.address]),
       ).to.be.revertedWith('Empty NFTL token address');
     });
 
     it('should revert if the heroes token address is zero', async function() {
       await expect(
-        upgrades.deployProxy(this.StakingFactory, [this.nftlToken.address, ZERO_ADDRESS]),
+        upgrades.deployProxy(this.StakingFactory, [this.nftlToken.address, ethers.constants.AddressZero]),
       ).to.be.revertedWith('Empty heroes address');
     });
 
@@ -69,11 +66,11 @@ describe('NFTStaking', function() {
     describe('Checking NFTL Output', async function() {
       beforeEach(async function() {
         await this.pool.start();
-        await this.nftlToken.mint(this.pool.address, BigNumber.from('10').mul(BigNumber.from(10).pow(18)));
+        await this.nftlToken.mint(this.pool.address, ethers.utils.parseEther('10'));
       });
 
       it('should revert when address _to equal zero', async function() {
-        await expect(this.pool.withdrawNftl(ZERO_ADDRESS, 1000)).to.be.revertedWith('Empty receiver address');
+        await expect(this.pool.withdrawNftl(ethers.constants.AddressZero, 1000)).to.be.revertedWith('Empty receiver address');
       });
 
       it('should revert when zero amount', async function() {
@@ -83,14 +80,14 @@ describe('NFTStaking', function() {
       it('should revert when the amount exceeds the balance ', async function() {
         await expect(this.pool.withdrawNftl(
           this.owner.address,
-          BigNumber.from('20').mul(BigNumber.from(10).pow(18)),
+          ethers.utils.parseEther('20'),
         )).to.be.revertedWith('Not enough tokens');
       });
 
       it('withdrawNftl() called', async function() {
         await expect(this.pool.withdrawNftl(
           this.owner.address,
-          BigNumber.from('5').mul(BigNumber.from(10).pow(18)),
+          ethers.utils.parseEther('5'),
         ));
       });
     });
@@ -123,12 +120,12 @@ describe('NFTStaking', function() {
 
       describe('Owner added reward token on the contract', async function() {
         beforeEach(async function() {
-          await this.nftlToken.mint(this.pool.address, BigNumber.from('3600000').mul(BigNumber.from(10).pow(18)));
+          await this.nftlToken.mint(this.pool.address, ethers.utils.parseEther('3600000'));
         });
 
         it('Balance of NFTL tokens increased', async function() {
           expect(await this.nftlToken.balanceOf(this.pool.address)).to.equal(
-            BigNumber.from('3600000').mul(BigNumber.from(10).pow(18)),
+            ethers.utils.parseEther('3600000'),
           );
         });
 
@@ -291,7 +288,7 @@ describe('NFTStaking', function() {
 
             it('staked flag and stakerAddress got cleared', async function() {
               expect((await this.pool.getStake(10)).staked).to.equal(false);
-              expect((await this.pool.getStake(10)).stakerAddress).to.equal(ZERO_ADDRESS);
+              expect((await this.pool.getStake(10)).stakerAddress).to.equal(ethers.constants.AddressZero);
             });
           });
         });
