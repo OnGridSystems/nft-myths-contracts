@@ -26,10 +26,10 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
     await execute('NFTStaking', { from: deployer, log: true }, 'start');
   }
 
-  const currentBaseRewardPerSecond = await staking.baseRewardPerSecond();
+  const currentBaseRewardPerSecond = (await staking.baseRewardPerSecond()).toNumber();
   console.log('Current BaseRewardPerSecond is', currentBaseRewardPerSecond.toString());
 
-  if (currentBaseRewardPerSecond != baseRewardPerSecond) {
+  if (currentBaseRewardPerSecond !== baseRewardPerSecond) {
     await execute('NFTStaking', { from: deployer, log: true }, 'setBaseRewardPerSecond', baseRewardPerSecond);
   }
 };
