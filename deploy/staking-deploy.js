@@ -4,6 +4,7 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
 
   const nftlToken = (await ethers.getContract('NFTL')).address;
   const heroesToken = (await ethers.getContract('Collection')).address;
+  const baseRewardPerSecond = 115740740741;
 
   await deploy('NFTStaking', {
     from: deployer,
@@ -16,9 +17,22 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
     skipIfAlreadyDeployed: true,
   });
 
-  const staking = await deployments.get('NFTStaking');
+  const staking = await ethers.getContract('NFTStaking');
 
-  await execute('ERC20Mock', { from: deployer, log: true }, 'transfer', staking.address, ethers.utils.parseEther('50'));
+  if (await staking.stakesOpen()) {
+    console.log('Stakes are open. No need to start it again.');
+  } else {
+    console.log('Stakes are not open. Starting');
+    await execute('NFTStaking', { from: deployer, log: true }, 'start');
+  }
+
+  const currentBaseRewardPerSecond = await staking.baseRewardPerSecond();
+  console.log('Current BaseRewardPerSecond is', currentBaseRewardPerSecond.toString());
+
+  if (currentBaseRewardPerSecond != baseRewardPerSecond) {
+    await execute('NFTStaking', { from: deployer, log: true }, 'setBaseRewardPerSecond', baseRewardPerSecond);
+  }
 };
 
-module.exports.dependencies = ['Collection', 'ERC20Mock'];
+module.exports.dependencies = ['NFTL'];
+module.exports.tags = ['Staking'];
