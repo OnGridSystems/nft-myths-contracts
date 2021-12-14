@@ -2,7 +2,7 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
   const { deploy, execute } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const nftlToken = (await ethers.getContract('ERC20Mock')).address;
+  const nftlToken = (await ethers.getContract('NFTL')).address;
   const heroesToken = (await ethers.getContract('Collection')).address;
 
   await deploy('NFTStaking', {
