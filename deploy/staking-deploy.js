@@ -35,8 +35,8 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
 
   const nftlTokenAddress = await staking.nftlToken();
   console.log('Current NFTL token address is', nftlTokenAddress);
-  if (nftlTokenAddress !== nftlToken.address) {
-    await execute('NFTStaking', { from: deployer, log: true }, 'setNftl', nftlToken.address);
+  if (nftlTokenAddress !== nftlToken) {
+    await execute('NFTStaking', { from: deployer, log: true }, 'setNftl', nftlToken);
   }
 };
 

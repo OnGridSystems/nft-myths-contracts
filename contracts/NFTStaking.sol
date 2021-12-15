@@ -62,6 +62,14 @@ contract NFTStaking is OwnableUpgradeable, ERC721HolderUpgradeable {
     }
 
     /**
+     * @dev set token address for payment of rewards
+     * @param _nftlAddress address of token - the same used to pay rewards
+     */
+    function setNftl(address _nftlAddress) public onlyOwner {
+        nftlToken = IERC20(_nftlAddress);
+    }
+
+    /**
      * @dev start accepting new stakes. Called only by the owner
      */
     function start() public onlyOwner {

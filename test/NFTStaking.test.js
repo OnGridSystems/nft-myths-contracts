@@ -16,7 +16,6 @@ describe('NFTStaking', function() {
     beforeEach(async function() {
       this.nftlToken = await this.nftlTokenFactory.deploy('NFTL', 'NFTL', this.owner.address, 0);
       this.heroesToken = await this.heroesTokenFactory.deploy();
-      // this.contract = await upgrades.deployProxy(this.StakingFactory);
       this.pool = await upgrades.deployProxy(this.StakingFactory, [this.nftlToken.address, this.heroesToken.address]);
       await this.pool.setBaseRewardPerSecond(10);
     });
@@ -46,6 +45,17 @@ describe('NFTStaking', function() {
       expect(await this.nftlToken.balanceOf(this.pool.address)).to.equal('0');
       expect(await this.heroesToken.balanceOf(this.pool.address)).to.equal('0');
       expect(await this.pool.baseRewardPerSecond()).to.equal('10');
+    });
+
+    it('change NFTL token address', async function() {
+      expect((await this.pool.nftlToken())).to.equal(this.nftlToken.address);
+      await this.pool.setNftl(ethers.constants.AddressZero);
+      expect((await this.pool.nftlToken())).to.equal(ethers.constants.AddressZero);
+    });
+
+    it('Non-owner can\'t change NFTL token address', async function() {
+      await expect(this.pool.connect(this.account1).setNftl(ethers.constants.AddressZero))
+        .to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('should revert when Stakes are not started yet', async function() {
