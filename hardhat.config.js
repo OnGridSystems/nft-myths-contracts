@@ -17,7 +17,6 @@ require('./tasks/5-start-sale.js');
 require('./tasks/6-buy-random-tokens.js');
 require('./tasks/7-stop-sale.js');
 require('./tasks/8-mint-remaining.js');
-require('./tasks/9-add-staking-reward.js');
 
 const accounts = {
   mnemonic: `${process.env.MNEMONIC}`,
