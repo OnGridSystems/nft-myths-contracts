@@ -65,14 +65,15 @@ module.exports = {
       gasPrice: 470000000000,
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      // url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: 'http://127.0.0.1:8545',
       accounts,
       chainId: 1,
       live: true,
       saveDeployments: true,
       tags: ['production'],
       gasMultiplier: 1.5,
-      gasPrice: 39000000000,
+      gasPrice: 65000000000,
       timeout: 60000,
     },
   },
@@ -83,6 +84,15 @@ module.exports = {
     compilers: [
       {
         version: '0.8.7',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
+        version: '0.8.9',
         settings: {
           optimizer: {
             enabled: true,
