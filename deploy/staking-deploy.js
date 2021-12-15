@@ -32,6 +32,12 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
   if (currentBaseRewardPerSecond !== baseRewardPerSecond) {
     await execute('NFTStaking', { from: deployer, log: true }, 'setBaseRewardPerSecond', baseRewardPerSecond);
   }
+
+  const nftlTokenAddress = await staking.nftlToken();
+  console.log('Current NFTL token address is', nftlTokenAddress);
+  if (nftlTokenAddress !== nftlToken.address) {
+    await execute('NFTStaking', { from: deployer, log: true }, 'setNftl', nftlToken.address);
+  }
 };
 
 module.exports.dependencies = ['NFTL'];

@@ -7,7 +7,7 @@ module.exports = async function({ ethers, getNamedAccounts, deployments, hre }) 
   const toAddress = deployer;
   const startBalance = ethers.utils.parseEther('100');
 
-  await deploy('ERC20Mock', {
+  await deploy('NFTL', {
     from: deployer,
     log: true,
     args: [name, symbol, toAddress, startBalance],
@@ -15,4 +15,4 @@ module.exports = async function({ ethers, getNamedAccounts, deployments, hre }) 
   });
 };
 
-module.exports.tags = ['ERC20Mock'];
+module.exports.tags = ['NFTL'];
