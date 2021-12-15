@@ -9,7 +9,7 @@ describe('NFTStaking', function() {
     this.stranger = this.signers[2];
 
     this.StakingFactory = await ethers.getContractFactory('NFTStaking');
-    this.nftlTokenFactory = await ethers.getContractFactory('ERC20Mock');
+    this.nftlTokenFactory = await ethers.getContractFactory('NFTL');
     this.heroesTokenFactory = await ethers.getContractFactory('CollectionMock');
   });
   describe('Deploy', function() {
