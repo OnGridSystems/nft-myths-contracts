@@ -14,7 +14,7 @@ describe('NFTStaking', function() {
   });
   describe('Deploy', function() {
     beforeEach(async function() {
-      this.nftlToken = await this.nftlTokenFactory.deploy('NFTL', 'NFTL', this.owner.address, 0);
+      this.nftlToken = await this.nftlTokenFactory.deploy();
       this.heroesToken = await this.heroesTokenFactory.deploy();
       this.pool = await upgrades.deployProxy(this.StakingFactory, [this.nftlToken.address, this.heroesToken.address]);
       await this.pool.setBaseRewardPerSecond(10);
