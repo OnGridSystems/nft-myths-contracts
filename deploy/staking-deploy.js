@@ -12,7 +12,6 @@ module.exports = async function({ ethers, getNamedAccounts, deployments }) {
     args: [nftlToken, heroesToken],
     proxy: {
       proxyContract: 'OpenZeppelinTransparentProxy',
-      methodName: 'initialize',
     },
     skipIfAlreadyDeployed: true,
   });
